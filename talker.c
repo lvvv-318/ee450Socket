@@ -21,10 +21,10 @@ int main(int argc, char *argv[])
     int rv;
     int numbytes;
 
-    if (argc != 3) {
-        fprintf(stderr,"usage: talker hostname message\n");
-        exit(1);
-    }
+    // if (argc != 3) {
+    //     fprintf(stderr,"usage: talker hostname message\n");
+    //     exit(1);
+    // }
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;

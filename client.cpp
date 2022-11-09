@@ -11,9 +11,20 @@
 
 using namespace std;
 
+#define SERVERPORT "25060"
+#define MAXBUFLEN 100
+
 struct UserInfo {
-    char username[];
-    char password[];
+    string username;
+    string password;
+};
+
+bool usernameCheck(string username) {
+	return true;
+}
+
+bool passwordCheck(string password) {
+	return true;
 }
 
 int main(int argc, char* argv[])
@@ -22,10 +33,10 @@ int main(int argc, char* argv[])
     struct addrinfo hints, *serveinfo, *p;
     int rv;
 
-    if (arge != 2) {
-        fprintf(stderr,"usage: client hostname\n");
-        exit(1);
-    }
+    // if (arge != 2) {
+    //     fprintf(stderr,"usage: client hostname\n");
+    //     exit(1);
+    // }
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -62,16 +73,37 @@ int main(int argc, char* argv[])
 
     cout << "The client is up and running." << endl;
 
-    UserInfo user;
-    
-    cout << "Please enter the user ID: " << endl;
+    UserInfo userInfo;
 
-    cin >> user.username;
+	while(true) {
+		
+		cout << "Please enter the user ID: " << endl;
+		cin >> userInfo.username;
+		if (!usernameCheck(userInfo.username)) {
+			continue;
+		}
+		cout << "Please enter the password: " << endl;
+		cin >> userInfo.password;
+		if (!passwordCheck(userInfo.password)) {
+			continue;
+		}
 
-    cout << "Please enter the password: " << endl;
+		if (numbytes = send(sockfd, &userInfo, sizeof(userInfo, 0)) == -1) {
+			cout << userInfo.username << " could not send to server!" << endl;
+			continue;
+		}
+		cout << userInfo.username << " sent an authentication request to the main server." << endl;
 
-    cin >> user.password;
+		char msgRecv[MAXBUFLEN];
+		if ((numbytes = recv(sockfd, &msgRecv, sizeof(msgRecv), 0)) == -1) {
+			cout << "There was an error getting response from server." << endl;
+		} else {
+			cout << "That's the message received: " << endl << msgRecv << endl;
+		}
 
-    
+	}
+
+	close(sockfd);
+	return 0;
 
 }
