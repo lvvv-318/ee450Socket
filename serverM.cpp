@@ -1,137 +1,126 @@
-# include <stdio.h>
-# include <stdlib.h>
-# include <unistd.h>
-# include <errno.h>
-# include <string.h>
-# include <netdb.h>
-# include <sys/types.h>
-# include <netinet/in.h>
-# include <sys/socket.h>
-# include <arpa/inet.h>
-# include <sys/wait.h>
 # include <iostream>
-# include <fstream>
+# include <sys/types.h>
+# include <unistd.h>
+# include <sys/socket.h>
+# include <netdb.h>
+# include <arpa/inet.h>
+# include <string.h>
 # include <string>
-# include <map>
-# include <vector>
-# include <sstream>
+# include <netinet/in.h>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <ctype.h>
+#include <sstream>
+#include <climits>
+#include <string>
 
 using namespace std;
 
-#define TCPPORT "25060"
+const std::string LOCAL_IP = "127.0.0.1";
+const int TCP_PORT = 25060;
+const int MAXBUFLEN = 4096;
 
 struct UserInfo {
     string username;
     string password;
 };
 
-void sigchld_handler(int s) {
+vector<string> convert_string_to_vector(string input_string) {
+    vector<string> result;
+    istringstream ss(input_string);
 
-    //waitpid() might overwrite errno, so we save and restore it:
-    int saved_errno = errno;
+    do {
+        string word;
+        ss >> word;
+        if (word == "") continue;
+        result.push_back(word);
+    }while (ss);
 
-    while(waitpid(-1, NULL, WNOHANG) > 0);
-
-    errno = saved_errno;
+    return result;
 }
 
-void setupTCP() {
-
-    int sockfd, new_fd;  // listen on sock_fd, new connection on new_fd
-	struct addrinfo hints, *servinfo, *p;
-	struct sockaddr_storage their_addr; // connector's address information
-	socklen_t sin_size;
-	// struct sigaction sa;
-	int yes = 1;
-	int rv;
-
-	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE; // use my IP
-
-	if ((rv = getaddrinfo(NULL, TCPPORT, &hints, &servinfo)) != 0) {
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-		exit(1);
+bool setupTCP(int &server_socket, sockaddr_in &serverAddr, int port, string IP)
+{
+	server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_socket < 0) {
+        cout << "Failed to create server socket.\n";
+		return false;
 	}
 
-	// loop through all the results and bind to the first we can
-	for (p = servinfo; p != NULL; p = p->ai_next) {
-		if ((sockfd = socket(p->ai_family, p->ai_socktype,
-            p->ai_protocol)) == -1) {
-			perror("server: socket");
-			continue;
-		}
-
-		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
-            sizeof(int)) == -1) {
-			perror("setsockopt");
-			exit(1);
-		}
-
-		if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-			close(sockfd);
-			perror("server: bind");
-			continue;
-		}
-
-		break;
+	serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(port);
+    serverAddr.sin_addr.s_addr = inet_addr(IP.c_str());
+	
+    if(bind(server_socket, (sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
+		cout << "[-]Error in binding.\n";
+		return false;
 	}
 
-	freeaddrinfo(servinfo); // all done with this structure
-
-	if (p == NULL) {
-		fprintf(stderr, "server: failed to bind\n");
-		exit(1);
+	if(listen(server_socket, 10) != 0) {
+		cout << "[-]Error in listening.\n";
+        return false;
 	}
 
-	if (listen(sockfd, 10) == -1) {
-		perror("listen");
-		exit(1);
-	}
-
-	// sa.sa_handler = sigchld_handler; // reap all dead processes
-	// sigemptyset(&sa.sa_mask);
-	// sa.sa_flags = SA_RESTART;
-
-	// if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-	// 	perror("sigaction");
-	// 	exit(1);
-	// }
-
-	while (1) {  // main accept() loop
-		sin_size = sizeof their_addr;
-		new_fd = accept(sockfd, (struct sockaddr*) &their_addr, &sin_size);
-
-		if (new_fd == -1) {
-			perror("accept");
-			continue;
-		}
-
-        if (!fork()) { // this is the child process
-			close(sockfd); // child doesn't need the listener
-			// recv client
-			UserInfo userInfo;
-
-			if (recv(new_fd, &userInfo, sizeof(userInfo), 0) == -1) {
-				perror("recv");
-                continue;
-            }
-			cout << "The Main server has received the request on User "
-                << userInfo.username << endl
-                << userInfo.password << endl;
-            
-            close(new_fd);
-
-            exit(0);
-        }
-        close(new_fd);
-    }
+	return true;
 }
 
-int main() {
+int main() 
+{
+	int server_socket, bind_return;
+	sockaddr_in serverAddr;
 
-	setupTCP();
+	if (setupTCP(server_socket, serverAddr, TCP_PORT, LOCAL_IP) == false) {
+		return -1;
+	}
+
+	int newSocket;
+	while (true) {
+		sockaddr_in newAddr; 
+
+		socklen_t addr_size = sizeof(newAddr);
+		pid_t childpid;
+
+		//accept request
+		newSocket = accept(server_socket, (sockaddr*)&newAddr, &addr_size);
+		if(newSocket < 0) {
+			return -1;
+		}
+		cout << "[+] Connection accepted from " << inet_ntoa(newAddr.sin_addr) << ": "
+			<< ntohs(newAddr.sin_port) << "\n";
+
+		if((childpid = fork()) == 0) {
+			close(server_socket);
+
+			while (true) {
+				char buffer[MAXBUFLEN];
+    			memset(&buffer, '\0', sizeof(buffer));
+
+				if (recv(newSocket, buffer, MAXBUFLEN, 0) == 0){
+					cout << "recv wrong" << endl;
+					continue;
+				}
+
+				vector<string> message_list = convert_string_to_vector(string(buffer));
+				string username = message_list[0];
+				string password = message_list[1];
+				string reply;
+
+				cout << "that's the request:" << username << " and password : " << password << endl;
+
+				reply = "All right";
+				send(newSocket, reply.c_str(),reply.size() + 1, 0);
+				cout << "[+] <" << TCP_PORT	 << "> Sending to Client <" << inet_ntoa(newAddr.sin_addr) << ": " << ntohs(newAddr.sin_port) 
+					 << "> : " <<  reply << endl << endl;
+			}
+		}
+		
+	}
+
+	close(newSocket);
 
 	return 0;
 }

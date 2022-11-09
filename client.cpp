@@ -8,11 +8,29 @@
 # include <arpa/inet.h>
 # include <sstream>
 # include <vector>
+# include <stdio.h>
+# include <stdlib.h>
+# include <unistd.h>
+# include <errno.h>
+# include <string.h>
+# include <netdb.h>
+# include <sys/types.h>
+# include <netinet/in.h>
+# include <sys/socket.h>
+# include <arpa/inet.h>
+# include <sys/wait.h>
+# include <iostream>
+# include <fstream>
+# include <string>
+# include <set>
+# include <vector>
+# include <sstream>
 
 using namespace std;
 
-#define SERVERPORT "25060"
-#define MAXBUFLEN 100
+const std::string LOCAL_IP = "127.0.0.1";
+const int TCP_PORT = 25060;
+const int MAXBUFLEN = 4096;
 
 struct UserInfo {
     string username;
@@ -27,83 +45,86 @@ bool passwordCheck(string password) {
 	return true;
 }
 
-int main(int argc, char* argv[])
+int main()
 {
-    int sockfd, numbytes;
-    struct addrinfo hints, *serveinfo, *p;
-    int rv;
-
-    // if (arge != 2) {
-    //     fprintf(stderr,"usage: client hostname\n");
-    //     exit(1);
-    // }
-
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-
-    if ((rv = getaddrinfo("localhost", SERVERPORT, &hints, &servinfo)) != 0) {
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-		return 1;
+	int client_socket = socket(AF_INET, SOCK_STREAM, 0);
+	if (client_socket == -1) {
+		cout << "socket wrong" << endl;
+		return -1;
 	}
 
-    // loop through all the results and connect to the first we can
-	for (p = servinfo; p != NULL; p = p->ai_next) {
-		if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol))
-				== -1) {
-			perror("client: socket");
-			continue;
-		}
+	sockaddr_in server_addr, my_addr;
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = htons(TCP_PORT);	
+	server_addr.sin_addr.s_addr = inet_addr(LOCAL_IP.c_str());
 
-		if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-			close(sockfd);
-			perror("client: connect");
-			continue;
-		}
-
-		break;
+	int connectRes = connect(client_socket, (sockaddr*)&server_addr, sizeof(server_addr));
+	if (connectRes == -1) {
+		cout << "connect wrong" << endl;
+		return -1;
 	}
 
-	if (p == NULL) {
-		fprintf(stderr, "client: failed to connect\n");
-		return 2;
-	}
+	int myPort;
+    char myIP[16];
+    bzero(&my_addr, sizeof(my_addr));
+	socklen_t len = sizeof(my_addr);
+	getsockname(client_socket, (struct sockaddr *) &my_addr, &len);
+	inet_ntop(AF_INET, &my_addr.sin_addr, myIP, sizeof(myIP));
+	myPort = ntohs(my_addr.sin_port);
 
-	freeaddrinfo(servinfo); // all done with this structure
+    //	While loop:
+    char buf[4096];
+    string userInput;
 
-    cout << "The client is up and running." << endl;
+    cout << "The client is up and running at port <" << myPort << ">" << endl <<endl;
 
-    UserInfo userInfo;
+	while (true) {
 
-	while(true) {
-		
-		cout << "Please enter the user ID: " << endl;
-		cin >> userInfo.username;
-		if (!usernameCheck(userInfo.username)) {
-			continue;
-		}
-		cout << "Please enter the password: " << endl;
-		cin >> userInfo.password;
-		if (!passwordCheck(userInfo.password)) {
-			continue;
-		}
+        cout << "Please enter the username: ";
+    
+        // input userID and check validation
+        string username, password;
+        cin >> username;
 
-		if (numbytes = send(sockfd, &userInfo, sizeof(userInfo, 0)) == -1) {
-			cout << userInfo.username << " could not send to server!" << endl;
-			continue;
-		}
-		cout << userInfo.username << " sent an authentication request to the main server." << endl;
+        if (!usernameCheck(username)) {
+            continue;
+        }
 
-		char msgRecv[MAXBUFLEN];
-		if ((numbytes = recv(sockfd, &msgRecv, sizeof(msgRecv), 0)) == -1) {
-			cout << "There was an error getting response from server." << endl;
-		} else {
-			cout << "That's the message received: " << endl << msgRecv << endl;
-		}
+        // input country name and check validation
+        cout << "[+] <" << myPort << "> Please enter the password:";
+        cin >> password;    // according to the requirements, country name does not contain white space, just use cin 
+        
+        if (!passwordCheck(password)) {
+            continue;
+        }
 
-	}
+        userInput = username + " " + password;  
 
-	close(sockfd);
+        //  Send to server
+        int sendRes = send(client_socket, userInput.c_str(), userInput.size() + 1, 0);
+        if (sendRes == -1) {
+            cout << "[-] <" << myPort << "> Could not send to server! Whoops!\r\n";
+            continue;
+        }
+
+        cout << "Client has sent User <" << username << "> and <" << password << "> to Main Server using TCP." << endl;
+
+        //	Wait for response
+        memset(buf, 0, 4096);
+        
+        int bytesReceived = recv(client_socket, buf, 4096, 0);
+        if (bytesReceived == -1) {
+            cout << "[-] <" << myPort << "> There was an error getting response from server" << endl << endl;
+        }
+        else {
+            //	Display response
+            cout << endl << "[+] <" << myPort << "> Receiving from TCP SERVER <"
+                 << inet_ntoa(server_addr.sin_addr) << ": " << ntohs(server_addr.sin_port) << "> :" << string(buf, bytesReceived) << endl;
+        }
+    }
+
+	close(client_socket);
+
 	return 0;
 
 }
