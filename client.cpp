@@ -80,20 +80,16 @@ int main()
 
 	while (true) {
 
-        cout << "Please enter the username: ";
-    
-        // input userID and check validation
-        string username, password;
-        cin >> username;
+		string username, password;
 
+        cout << "Please enter the username: ";
+        cin >> username;
         if (!usernameCheck(username)) {
             continue;
         }
 
-        // input country name and check validation
-        cout << "[+] <" << myPort << "> Please enter the password:";
-        cin >> password;    // according to the requirements, country name does not contain white space, just use cin 
-        
+        cout << "Please enter the password: ";
+        cin >> password;
         if (!passwordCheck(password)) {
             continue;
         }
