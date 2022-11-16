@@ -86,8 +86,7 @@ int main()
     string line;
     while(getline(ins, line)) {
         stringstream ss(line);
-        string username;
-        string password;
+        string username, password;
         getline(ss, username, ',');
         ss >> password;
         cred_map.insert(make_pair(username, password));

@@ -83,7 +83,6 @@ int main()
 
         string username, password;
 
-        
         cout << "Please enter the username: ";
         getline(cin, username);
         if (!usernameCheck(username)) {
@@ -114,10 +113,7 @@ int main()
             cout << "[-] <" << myPort << "> There was an error getting response from server" << endl << endl;
         }
         else {
-            if (receivedInfo.compare("PASS") == 0) {
-                cout << username << " received the result of authentication using TCP over "
-                     << TCP_PORT << ". Authentication is successful" << endl;
-            } else if (receivedInfo.compare("FAIL_NO_USER") == 0) {
+            if (receivedInfo.compare("FAIL_NO_USER") == 0) {
                 cout << username << " received the result of authentication using TCP over "
                      << TCP_PORT << ". Authentication failed: Username Does not exist" << endl
                      << "Attempts remaining:" << count << endl;
@@ -125,6 +121,32 @@ int main()
                 cout << username << " received the result of authentication using TCP over "
                      << TCP_PORT << ". Authentication failed: Password Does not exist" << endl
                      << "Attempts remaining:" << count << endl;
+            } else if (receivedInfo.compare("PASS") == 0) {
+                cout << username << " received the result of authentication using TCP over "
+                     << TCP_PORT << ". Authentication is successful" << endl;
+                
+                string courseCode, category;
+                cout << "Please enter the course code to query: ";
+                getline(cin, courseCode);
+                cout << "Please enter the category (Credit/Professor/Days/CourseName): ";
+                getline(cin, category);
+                string query = courseCode + "," + category;
+
+                int sendRes = send(client_socket, userInput.c_str(), userInput.size() + 1, 0);
+                cout << username << " sent a request to the main server." << endl;
+                if (sendRes == -1) {
+                    cout << "Could not send to server! Whoops!\r\n";
+                    continue;
+                }
+
+                //	Wait for response
+                memset(buf, 0, 4096);
+                
+                int bytesReceived = recv(client_socket, buf, 4096, 0);
+                string courseInfo(buf);cout << "Thats what I got: " << courseInfo << endl;
+                if (bytesReceived == -1) {
+                    cout << "[-] <" << myPort << "> There was an error getting response from server" << endl << endl;
+                }
             }
         }
         count--;
