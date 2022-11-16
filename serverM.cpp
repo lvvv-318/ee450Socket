@@ -32,6 +32,23 @@ struct UserInfo
     string password;
 };
 
+string encrypt(string input)
+{
+	string cipher = "";
+	for (int i = 0; i < input.size(); i++) {
+		if (input[i] >= 'a' && input[i] <= 'z') {
+			cipher.push_back((char)((input[i] - 'a' + 4) % 26 + 'a'));
+		} else if (input[i] >= 'A' && input[i] <= 'Z') {
+			cipher.push_back((char)((input[i] - 'A' + 4) % 26 + 'A'));
+		} else if (input[i] >= '0' && input[i] <= '9') {
+			cipher.push_back((char)((input[i] - '0' + 4) % 10 + '0'));
+		} else {
+			cipher.push_back(input[i]);
+		}
+	}
+	return cipher;
+}
+
 void create_UDP(int &sockfd_UDP, sockaddr_in &serverAddr_UDP, int port, string ip) 
 { 
 	sockfd_UDP = socket(PF_INET, SOCK_DGRAM, 0);
@@ -52,7 +69,6 @@ string UDP_send_receive(int &sockfd_UDP, sockaddr_in &serverAddr_UDP, string mes
 	memset(&buffer, '\0', sizeof(buffer));
 	
 	recvfrom(sockfd_UDP, buffer, MAXBUFLEN, 0, (sockaddr*) &serverAddr_UDP, &serverAddr_UDP_length);
-	// cout << "[+]Receiving: " << buffer << endl;
 	cout << "The main server received the result of the authentication request " \
 			"from ServerC using UDP over port " << SERVER_C << endl;
 	
@@ -61,17 +77,15 @@ string UDP_send_receive(int &sockfd_UDP, sockaddr_in &serverAddr_UDP, string mes
 
 vector<string> convert_string_to_vector(string input_string)
 {
-    vector<string> result;
-    istringstream ss(input_string);
+	vector<string> result;
+	if (input_string == "") return result;
+	string token;
+	stringstream ss(input_string);
+	while (getline(ss, token, ',')) {
+		result.push_back(token);
+	}
 
-    do {
-        string word;
-        ss >> word;
-        if (word == "") continue;
-        result.push_back(word);
-    }while (ss);
-
-    return result;
+	return result;
 }
 
 bool setupTCP(int &server_socket, sockaddr_in &serverAddr, int port, string IP)
@@ -152,20 +166,17 @@ int main()
 					continue;
 				}
 
-				string response = UDP_send_receive(sockfd_UDP, serverAddr_UDP_C, string(buffer));
-				cout << "That's what I got : " << response << endl;
-
 				vector<string> message_list = convert_string_to_vector(string(buffer));
 				string username = message_list[0];
 				string password = message_list[1];
-				string reply;
+				username = encrypt(username);
+				password = encrypt(password);
+				string toCren = username + "," + password;
 
-				cout << "that's the request:" << username << " and password : " << password << endl;
+				string response = UDP_send_receive(sockfd_UDP, serverAddr_UDP_C, toCren);
 
-				reply = "All right";
-				send(newSocket, reply.c_str(),reply.size() + 1, 0);
-				cout << "[+] <" << TCP_PORT	 << "> Sending to Client <" << inet_ntoa(newAddr.sin_addr) << ": " << ntohs(newAddr.sin_port) 
-					 << "> : " <<  reply << endl << endl;
+				send(newSocket, response.c_str(), response.size() + 1, 0);
+				cout << "The main server sent the authentication result to the client." <<response<< endl;
 			}
 		}
 		

@@ -32,11 +32,6 @@ const std::string LOCAL_IP = "127.0.0.1";
 const int TCP_PORT = 25060;
 const int MAXBUFLEN = 4096;
 
-struct UserInfo {
-    string username;
-    string password;
-};
-
 bool usernameCheck(string username) {
 	return true;
 }
@@ -75,48 +70,64 @@ int main()
     //	While loop:
     char buf[4096];
     string userInput;
+    int count = 2;
 
     cout << "The client is up and running at port <" << myPort << ">" << endl <<endl;
 
 	while (true) {
 
-		string username, password;
+        if (count < 0) {
+            cout << "Authentication Failed for 3 attempts. Client will shut down." << endl;
+            break;
+        }
 
+        string username, password;
+
+        
         cout << "Please enter the username: ";
-        cin >> username;
+        getline(cin, username);
         if (!usernameCheck(username)) {
             continue;
         }
 
         cout << "Please enter the password: ";
-        cin >> password;
+        getline(cin, password);
         if (!passwordCheck(password)) {
             continue;
         }
 
-        userInput = username + " " + password;  
-
+        userInput = username + "," + password;
         //  Send to server
         int sendRes = send(client_socket, userInput.c_str(), userInput.size() + 1, 0);
+        cout << username << " sent an authentication request to the main server." << endl;
         if (sendRes == -1) {
-            cout << "[-] <" << myPort << "> Could not send to server! Whoops!\r\n";
+            cout << "Could not send to server! Whoops!\r\n";
             continue;
         }
-
-        cout << "Client has sent User <" << username << "> and <" << password << "> to Main Server using TCP." << endl;
 
         //	Wait for response
         memset(buf, 0, 4096);
         
         int bytesReceived = recv(client_socket, buf, 4096, 0);
+        string receivedInfo(buf);
         if (bytesReceived == -1) {
             cout << "[-] <" << myPort << "> There was an error getting response from server" << endl << endl;
         }
         else {
-            //	Display response
-            cout << endl << "[+] <" << myPort << "> Receiving from TCP SERVER <"
-                 << inet_ntoa(server_addr.sin_addr) << ": " << ntohs(server_addr.sin_port) << "> :" << string(buf, bytesReceived) << endl;
+            if (receivedInfo.compare("PASS") == 0) {
+                cout << username << " received the result of authentication using TCP over "
+                     << TCP_PORT << ". Authentication is successful" << endl;
+            } else if (receivedInfo.compare("FAIL_NO_USER") == 0) {
+                cout << username << " received the result of authentication using TCP over "
+                     << TCP_PORT << ". Authentication failed: Username Does not exist" << endl
+                     << "Attempts remaining:" << count << endl;
+            } else if (receivedInfo.compare("FAIL_PASS_NO_MATCH") == 0) {
+                cout << username << " received the result of authentication using TCP over "
+                     << TCP_PORT << ". Authentication failed: Password Does not exist" << endl
+                     << "Attempts remaining:" << count << endl;
+            }
         }
+        count--;
     }
 
 	close(client_socket);

@@ -25,6 +25,7 @@
 # include <set>
 # include <vector>
 # include <sstream>
+# include <map>
 
 using namespace std;
 
@@ -34,6 +35,19 @@ const int SERVER_C = 21060;
 const int UDP_MAIN_SERVER = 24060;
 const int TCP_PORT = 25060;
 const int MAXBUFLEN = 4096;
+
+vector<string> convert_string_to_vector(string input_string)
+{
+	vector<string> result;
+	if (input_string == "") return result;
+	string token;
+	stringstream ss(input_string);
+	while (getline(ss, token, ',')) {
+		result.push_back(token);
+	}
+
+	return result;
+}
 
 void create_UDP(int &sockfd_UDP, sockaddr_in &serverAddr_UDP, int port, string ip) 
 { 
@@ -64,11 +78,30 @@ string UDP_send_receive(int &sockfd_UDP, sockaddr_in &serverAddr_UDP, string mes
 
 int main()
 {
+    map<string, string> cred_map;
+
+    ifstream ins(INPUT);
+
+    // read data from the txt file
+    string line;
+    while(getline(ins, line)) {
+        stringstream ss(line);
+        string username;
+        string password;
+        getline(ss, username, ',');
+        ss >> password;
+        cred_map.insert(make_pair(username, password));
+    }
+
+    // for(map<string,string>::iterator itr=cred_map.begin();itr!=cred_map.end();itr++){
+    //     cout<<"Username: "<<itr->first<<" Password: "<<itr->second<<endl;
+    // }
+
     int sockfd;
     sockaddr_in serverAddr, clientAddr;
     char buffer[MAXBUFLEN];
     socklen_t addr_size;
-    string message = "OK";
+    string message = "null";
 
     create_UDP(sockfd, serverAddr, SERVER_C, LOCAL_IP);
 
@@ -86,36 +119,29 @@ int main()
         socklen_t  siaddr_size = sizeof(clientAddr);
 
         recvfrom(sockfd, buffer, MAXBUFLEN, 0, (sockaddr*) &clientAddr, &siaddr_size);
-        message = string(buffer);
 
         cout << "The ServerC received an authentication request from the Main Server." << endl;
-
+        vector<string> message_list = convert_string_to_vector(string(buffer));
+        string username = message_list[0];
+        string password = message_list[1];
+        cout << "Username: " << username << endl;
+        cout << "Password: " << password << endl;
         // Figure out the correct message
-        message = "Got it.";
+        auto iter = cred_map.find(username);
+        if (iter == cred_map.end()) {
+            message = "FAIL_NO_USER";
+        } else {         
+            if (iter->second.compare(password) != 0) {
+                message = "FAIL_PASS_NO_MATCH";
+            } else {
+                message = "PASS";
+            }
+        }
 
         sendto(sockfd, message.c_str(), message.size() + 1, 0, (sockaddr*) &clientAddr, sizeof(clientAddr));
-        cout << "The ServerC finished sending the response to the Main Server." << endl;
+        cout << "The ServerC finished sending the response to the Main Server." <<message<< endl;
 
     }
-
-    // map<string, string> cred_map;
-
-    // ifstream ins(INPUT);
-
-    // // read data from the txt file
-    // string line;
-    // while(getline(ins, line)) {
-    //     stringstream ss(line);
-    //     string username;
-    //     string password;
-    //     getline(ss, username, ',');
-    //     ss >> password;
-    //     cred_map.insert(make_pair(username, password));
-    // }
-
-    // for(map<string,string>::iterator itr=cred_map.begin();itr!=cred_map.end();itr++){
-    //     cout<<"Username: "<<itr->first<<" Password: "<<itr->second<<endl;
-    // }
 
     close(sockfd);
     

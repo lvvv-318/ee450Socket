@@ -1,5 +1,11 @@
 {
     "files.associations": {
-        "istream": "cpp"
+        "istream": "cpp",
+        "iostream": "cpp",
+        "array": "cpp",
+        "initializer_list": "cpp",
+        "*.tcc": "cpp",
+        "tuple": "cpp",
+        "utility": "cpp"
     }
 }
