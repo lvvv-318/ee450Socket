@@ -130,7 +130,7 @@ int main()
                 getline(cin, courseCode);
                 cout << "Please enter the category (Credit/Professor/Days/CourseName): ";
                 getline(cin, category);
-                string query = courseCode + "," + category;
+                string query = courseCode + "," + category;cout << "Send this: " << query << endl;
 
                 int sendRes = send(client_socket, userInput.c_str(), userInput.size() + 1, 0);
                 cout << username << " sent a request to the main server." << endl;

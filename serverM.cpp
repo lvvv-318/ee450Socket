@@ -115,12 +115,13 @@ bool setupTCP(int &server_socket, sockaddr_in &serverAddr, int port, string IP)
 
 int main() 
 {
+	// UDP
 	int sockfd_UDP;
     sockaddr_in main_serverAddr_UDP, serverAddr_UDP_C, B_serverAddr_UDP;
     create_UDP(sockfd_UDP, main_serverAddr_UDP, UDP_MAIN_SERVER, LOCAL_IP);
 
     if (bind(sockfd_UDP, (sockaddr *) &main_serverAddr_UDP, sizeof(main_serverAddr_UDP)) < 0) {
-        cout <<"Error in binding in UDP ServerC" << endl;
+        cout << "Error in binding in UDP ServerC" << endl;
         return -1;
     }
 
@@ -148,13 +149,13 @@ int main()
 
 		//accept request
 		newSocket = accept(server_socket, (sockaddr*)&newAddr, &addr_size);
-		if(newSocket < 0) {
+		if (newSocket < 0) {
 			return -1;
 		}
 		cout << "Connection accepted from " << inet_ntoa(newAddr.sin_addr) << ": "
-			<< ntohs(newAddr.sin_port) << endl;
+			 << ntohs(newAddr.sin_port) << endl;
 
-		if((childpid = fork()) == 0) {
+		if ((childpid = fork()) == 0) {
 			close(server_socket);
 
 			while (true) {
@@ -164,19 +165,39 @@ int main()
 				if (recv(newSocket, buffer, MAXBUFLEN, 0) == 0){
 					cout << "recv wrong" << endl;
 					continue;
+				}cout << "GOt this : " << string(buffer) << endl;
+
+				if (buffer[0] != 'E' && buffer[0] != 'C') {
+					vector<string> message_list = convert_string_to_vector(string(buffer));
+					string username = message_list[0];
+					string password = message_list[1];
+					username = encrypt(username);
+					password = encrypt(password);
+					string toCren = username + "," + password;
+					memset(&buffer, '\0', sizeof(buffer));
+
+					string response = UDP_send_receive(sockfd_UDP, serverAddr_UDP_C, toCren);
+
+					send(newSocket, response.c_str(), response.size() + 1, 0);
+
+					cout << "The main server sent the authentication result to the client." <<response<< endl;
+				} else if (buffer[0] == 'E') {
+					vector<string> message_list = convert_string_to_vector(string(buffer));
+					string courseCode = message_list[0];
+					string category = message_list[1];
+					cout << "CourseCOde: " << courseCode << endl;
+					cout << "Category: " << category << endl;
+					string tmp = "EE";
+					send(newSocket, tmp.c_str(), tmp.size() + 1, 0);
+				} else if (buffer[0] == 'C') {
+					vector<string> message_list = convert_string_to_vector(string(buffer));
+					string courseCode = message_list[0];
+					string category = message_list[1];
+					cout << "CourseCOde: " << courseCode << endl;
+					cout << "Category: " << category << endl;
+					string tmp = "CS";
+					send(newSocket, tmp.c_str(), tmp.size() + 1, 0);
 				}
-
-				vector<string> message_list = convert_string_to_vector(string(buffer));
-				string username = message_list[0];
-				string password = message_list[1];
-				username = encrypt(username);
-				password = encrypt(password);
-				string toCren = username + "," + password;
-
-				string response = UDP_send_receive(sockfd_UDP, serverAddr_UDP_C, toCren);
-
-				send(newSocket, response.c_str(), response.size() + 1, 0);
-				cout << "The main server sent the authentication result to the client." <<response<< endl;
 			}
 		}
 		
