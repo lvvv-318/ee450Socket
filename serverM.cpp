@@ -165,14 +165,14 @@ int main()
 				if (recv(newSocket, buffer, MAXBUFLEN, 0) == 0){
 					cout << "recv wrong" << endl;
 					continue;
-				}cout << "GOt this : " << string(buffer) << endl;
+				}
 
 				if (buffer[0] != 'E' && buffer[0] != 'C') {
 					vector<string> message_list = convert_string_to_vector(string(buffer));
 					string username = message_list[0];
 					string password = message_list[1];
 					username = encrypt(username);
-					password = encrypt(password);
+					password = encrypt(password);cout<<"User: "<<username<<endl<<"Code: "<<password<<endl;
 					string toCren = username + "," + password;
 					memset(&buffer, '\0', sizeof(buffer));
 
@@ -185,7 +185,7 @@ int main()
 					vector<string> message_list = convert_string_to_vector(string(buffer));
 					string courseCode = message_list[0];
 					string category = message_list[1];
-					cout << "CourseCOde: " << courseCode << endl;
+					cout << "CourseCode: " << courseCode << endl;
 					cout << "Category: " << category << endl;
 					string tmp = "EE";
 					send(newSocket, tmp.c_str(), tmp.size() + 1, 0);
@@ -193,7 +193,7 @@ int main()
 					vector<string> message_list = convert_string_to_vector(string(buffer));
 					string courseCode = message_list[0];
 					string category = message_list[1];
-					cout << "CourseCOde: " << courseCode << endl;
+					cout << "CourseCode: " << courseCode << endl;
 					cout << "Category: " << category << endl;
 					string tmp = "CS";
 					send(newSocket, tmp.c_str(), tmp.size() + 1, 0);
