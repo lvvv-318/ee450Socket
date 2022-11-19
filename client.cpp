@@ -122,15 +122,22 @@ int main()
                      << TCP_PORT << ". Authentication failed: Password Does not exist" << endl
                      << "Attempts remaining:" << count << endl;
             } else if (receivedInfo.compare("PASS") == 0) {
+
                 cout << username << " received the result of authentication using TCP over "
                      << TCP_PORT << ". Authentication is successful" << endl;
+
+                int enterCount = 0;
                 while (true) {
                     string courseCode, category;
+
+                    if (enterCount != 0) {
+                        cout << endl << "-----Start a new request-----" << endl;
+                    }
                     cout << "Please enter the course code to query: ";
                     getline(cin, courseCode);
                     cout << "Please enter the category (Credit/Professor/Days/CourseName): ";
                     getline(cin, category);
-                    string query = courseCode + "," + category;cout << "Send this: " << query << endl;
+                    string query = courseCode + "," + category;
 
                     int sendRes = send(client_socket, query.c_str(), query.size() + 1, 0);
                     cout << username << " sent a request to the main server." << endl;
@@ -143,10 +150,18 @@ int main()
                     memset(buf, 0, 4096);
                     
                     int bytesReceived = recv(client_socket, buf, 4096, 0);
-                    string courseInfo(buf);cout << "Thats what I got: " << courseInfo << endl;
+                    string courseInfo(buf);
                     if (bytesReceived == -1) {
                         cout << "[-] <" << myPort << "> There was an error getting response from server" << endl << endl;
                     }
+                    if (courseInfo.compare("NOT_FOUND") == 0) {
+                        cout << "Didn't find the course: " << courseCode << "." << endl;
+                    } else {
+                        cout << "The " << category << " of " << courseCode << " is " <<
+                                courseInfo << endl;
+                        
+                    }
+                    enterCount++;
                 }
             }
         }

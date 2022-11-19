@@ -22,6 +22,8 @@ using namespace std;
 
 const std::string LOCAL_IP = "127.0.0.1";
 const int SERVER_C = 21060;
+const int SERVER_CS = 22060;
+const int SERVER_EE = 23060;
 const int UDP_MAIN_SERVER = 24060;
 const int TCP_PORT = 25060;
 const int MAXBUFLEN = 4096;
@@ -62,15 +64,13 @@ void create_UDP(int &sockfd_UDP, sockaddr_in &serverAddr_UDP, int port, string i
 string UDP_send_receive(int &sockfd_UDP, sockaddr_in &serverAddr_UDP, string message)
 {
 	sendto(sockfd_UDP, message.c_str(), message.size() + 1, 0, (struct sockaddr*)&serverAddr_UDP, sizeof(serverAddr_UDP));
-	cout << "The main server sent an authentication request to serverC." << endl;
+	
     socklen_t  serverAddr_UDP_length = sizeof(serverAddr_UDP);
 
 	char buffer[MAXBUFLEN];
 	memset(&buffer, '\0', sizeof(buffer));
 	
 	recvfrom(sockfd_UDP, buffer, MAXBUFLEN, 0, (sockaddr*) &serverAddr_UDP, &serverAddr_UDP_length);
-	cout << "The main server received the result of the authentication request " \
-			"from ServerC using UDP over port " << SERVER_C << endl;
 	
 	return string(buffer);
 }
@@ -115,9 +115,9 @@ bool setupTCP(int &server_socket, sockaddr_in &serverAddr, int port, string IP)
 
 int main() 
 {
-	// UDP
+	// UDP Setup
 	int sockfd_UDP;
-    sockaddr_in main_serverAddr_UDP, serverAddr_UDP_C, B_serverAddr_UDP;
+    sockaddr_in main_serverAddr_UDP, serverAddr_UDP_C, serverAddr_UDP_CS, serverAddr_UDP_EE;
     create_UDP(sockfd_UDP, main_serverAddr_UDP, UDP_MAIN_SERVER, LOCAL_IP);
 
     if (bind(sockfd_UDP, (sockaddr *) &main_serverAddr_UDP, sizeof(main_serverAddr_UDP)) < 0) {
@@ -130,7 +130,17 @@ int main()
     serverAddr_UDP_C.sin_addr.s_addr = inet_addr(LOCAL_IP.c_str());
     serverAddr_UDP_C.sin_port = htons(SERVER_C);
 
-	// TCP
+	memset(&serverAddr_UDP_CS, 0, sizeof(serverAddr_UDP_CS));
+	serverAddr_UDP_CS.sin_family = AF_INET;
+	serverAddr_UDP_CS.sin_addr.s_addr = inet_addr(LOCAL_IP.c_str());
+	serverAddr_UDP_CS.sin_port = htons(SERVER_CS);
+
+	memset(&serverAddr_UDP_EE, 0, sizeof(serverAddr_UDP_EE));
+	serverAddr_UDP_EE.sin_family = AF_INET;
+	serverAddr_UDP_EE.sin_addr.s_addr = inet_addr(LOCAL_IP.c_str());
+	serverAddr_UDP_EE.sin_port = htons(SERVER_EE);
+
+	// TCP Setup
 	int server_socket, bind_return;
 	sockaddr_in serverAddr;
 
@@ -141,7 +151,9 @@ int main()
 	cout << "The main server is up and running." << endl;
 
 	int newSocket;
+
 	while (true) {
+
 		sockaddr_in newAddr; 
 
 		socklen_t addr_size = sizeof(newAddr);
@@ -159,6 +171,7 @@ int main()
 			close(server_socket);
 
 			while (true) {
+
 				char buffer[MAXBUFLEN];
     			memset(&buffer, '\0', sizeof(buffer));
 
@@ -166,41 +179,72 @@ int main()
 					cout << "recv wrong" << endl;
 					continue;
 				}
+				
+				string username;
 
 				if (buffer[0] != 'E' && buffer[0] != 'C') {
+
 					vector<string> message_list = convert_string_to_vector(string(buffer));
-					string username = message_list[0];
+					username = message_list[0];
 					string password = message_list[1];
 					username = encrypt(username);
-					password = encrypt(password);cout<<"User: "<<username<<endl<<"Code: "<<password<<endl;
+					password = encrypt(password);
 					string toCren = username + "," + password;
 					memset(&buffer, '\0', sizeof(buffer));
 
+					cout << "The main server sent an authentication request to serverC." << endl;
 					string response = UDP_send_receive(sockfd_UDP, serverAddr_UDP_C, toCren);
+					cout << "The main server received the result of the authentication request " \
+							"from ServerC using UDP over port " << SERVER_C << endl;
 
 					send(newSocket, response.c_str(), response.size() + 1, 0);
 
-					cout << "The main server sent the authentication result to the client." <<response<< endl;
+					cout << "The main server sent the authentication result to the client." <<
+							response << endl;
+
 				} else if (buffer[0] == 'E') {
+
 					vector<string> message_list = convert_string_to_vector(string(buffer));
 					string courseCode = message_list[0];
 					string category = message_list[1];
-					cout << "CourseCode: " << courseCode << endl;
-					cout << "Category: " << category << endl;
-					string tmp = "EE";
-					send(newSocket, tmp.c_str(), tmp.size() + 1, 0);
+					string toEE = courseCode + "," + category;
+					// cout << "CourseCode: " << courseCode << endl;
+					// cout << "Category: " << category << endl;
+
+					cout << "The main server received from " << username << " to query course " <<
+							courseCode << " about " << category << " using TCP over port " <<
+							TCP_PORT << endl;
+					string ee_response = UDP_send_receive(sockfd_UDP, serverAddr_UDP_EE, toEE);
+					cout << "The main server sent a request to serverEE." << endl;
+
+					cout << "The main server received the response from serverEE using UDP " <<
+							"over port " << SERVER_EE << "." << endl;
+					send(newSocket, ee_response.c_str(), ee_response.size() + 1, 0);
+					cout << "The main server sent the query information to the client." << endl;
+
 				} else if (buffer[0] == 'C') {
+
 					vector<string> message_list = convert_string_to_vector(string(buffer));
 					string courseCode = message_list[0];
 					string category = message_list[1];
-					cout << "CourseCode: " << courseCode << endl;
-					cout << "Category: " << category << endl;
-					string tmp = "CS";
-					send(newSocket, tmp.c_str(), tmp.size() + 1, 0);
+					string toCS = courseCode + "," + category;
+					// cout << "CourseCode: " << courseCode << endl;
+					// cout << "Category: " << category << endl;
+
+					cout << "The main server received from " << username << " to query course " <<
+							courseCode << " about " << category << " using TCP over port " <<
+							TCP_PORT << endl;
+					string cs_response = UDP_send_receive(sockfd_UDP, serverAddr_UDP_CS, toCS);
+					cout << "The main server sent a request to serverCS." << endl;
+					
+					cout << "The main server received the response from serverCS using UDP " <<
+							"over port " << SERVER_CS << "." << endl;
+					send(newSocket, cs_response.c_str(), cs_response.size() + 1, 0);
+					cout << "The main server sent the query information to the client." << endl;
+
 				}
 			}
 		}
-		
 	}
 
 	close(newSocket);

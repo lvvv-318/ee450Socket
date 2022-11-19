@@ -32,6 +32,8 @@ using namespace std;
 const std::string LOCAL_IP = "127.0.0.1";
 const std::string INPUT = "cred.txt";
 const int SERVER_C = 21060;
+const int SERVER_CS = 22060;
+const int SERVER_EE = 23060;
 const int UDP_MAIN_SERVER = 24060;
 const int TCP_PORT = 25060;
 const int MAXBUFLEN = 4096;
@@ -112,6 +114,7 @@ int main()
     cout << "The ServerC is up and running using UDP on port " << SERVER_C << endl;
 
     while (true) {
+
         memset(&buffer, '\0', sizeof(buffer));
         memset(&clientAddr, '\0', sizeof(clientAddr));
         
@@ -123,8 +126,9 @@ int main()
         vector<string> message_list = convert_string_to_vector(string(buffer));
         string username = message_list[0];
         string password = message_list[1];
-        cout << "Username: " << username << endl;
-        cout << "Password: " << password << endl;
+        // cout << "Username: " << username << endl;
+        // cout << "Password: " << password << endl;
+
         // Figure out the correct message
         auto iter = cred_map.find(username);
         if (iter == cred_map.end()) {
@@ -138,7 +142,7 @@ int main()
         }
 
         sendto(sockfd, message.c_str(), message.size() + 1, 0, (sockaddr*) &clientAddr, sizeof(clientAddr));
-        cout << "The ServerC finished sending the response to the Main Server." <<message<< endl;
+        cout << "The ServerC finished sending the response to the Main Server." << endl;
 
     }
 
