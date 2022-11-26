@@ -28,12 +28,6 @@ const int UDP_MAIN_SERVER = 24060;
 const int TCP_PORT = 25060;
 const int MAXBUFLEN = 4096;
 
-struct UserInfo
-{
-    string username;
-    string password;
-};
-
 string encrypt(string input)
 {
 	string cipher = "";

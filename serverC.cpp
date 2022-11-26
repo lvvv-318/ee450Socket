@@ -1,4 +1,3 @@
-// using g++ -o serverC -std=c++11 serverC.cpp
 # include <iostream>
 # include <cstring>
 # include <sys/types.h>
@@ -94,10 +93,6 @@ int main()
         cred_map.insert(make_pair(username, password));
     }
 
-    // for(map<string,string>::iterator itr=cred_map.begin();itr!=cred_map.end();itr++){
-    //     cout<<"Username: "<<itr->first<<" Password: "<<itr->second<<endl;
-    // }
-
     int sockfd;
     sockaddr_in serverAddr, clientAddr;
     char buffer[MAXBUFLEN];
@@ -126,8 +121,6 @@ int main()
         vector<string> message_list = convert_string_to_vector(string(buffer));
         string username = message_list[0];
         string password = message_list[1];
-        // cout << "Username: " << username << endl;
-        // cout << "Password: " << password << endl;
 
         // Figure out the correct message
         auto iter = cred_map.find(username);

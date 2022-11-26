@@ -1,4 +1,3 @@
-// using g++ -o serverEE -std=c++11 serverEE.cpp
 # include <iostream>
 # include <cstring>
 # include <sys/types.h>
@@ -84,11 +83,6 @@ int main()
         values.push_back(col5);
         ee_map.insert(make_pair(col1, values));
     }
-
-    // for(map<string,vector<string>>::iterator itr=ee_map.begin();itr!=ee_map.end();itr++){
-    //     cout<<"Course Code: "<<itr->first<< endl<<"values: "<<itr->second[0] << " , " <<
-    //     itr->second[1]<<" , " <<itr->second[2]<<" , "<<itr->second[3]<<endl;
-    // }
 
     int sockfd;
     sockaddr_in serverAddr, clientAddr;

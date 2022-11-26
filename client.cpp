@@ -1,4 +1,3 @@
-// using g++ -o client -std=c++11 client.cpp
 # include <iostream>
 # include <cstring>
 # include <sys/types.h>
@@ -72,7 +71,7 @@ int main()
     string userInput;
     int count = 2;
 
-    cout << "The client is up and running at port <" << myPort << ">" << endl <<endl;
+    cout << "The client is up and running." << endl;
 
 	while (true) {
 
