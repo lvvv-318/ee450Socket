@@ -117,7 +117,7 @@ int main()
         auto iter = cs_map.find(courseCode);
         if (iter == cs_map.end()) {
             message = "NOT_FOUND";
-            cout << "Didn't find the course: " << courseCode << endl;
+            cout << "Didn't find the course: " << courseCode << "." << endl;
         } else {
             if (category.compare("Credit") == 0) {
                 message = iter->second[0];
@@ -129,7 +129,7 @@ int main()
                 message = iter->second[3];
             }
             cout << "The course information has been founded: The " << category <<
-                    " of " << courseCode << " is " << message << endl;
+                    " of " << courseCode << " is " << message << "." << endl;
         }
         sendto(sockfd, message.c_str(), message.size() + 1, 0, (sockaddr*) &clientAddr, sizeof(clientAddr));
         cout << "The ServerCS finished sending the response to the Main Server." << endl;

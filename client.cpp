@@ -58,13 +58,13 @@ int main()
 		return -1;
 	}
 
-	int myPort;
+	int dynamicPort;
     char myIP[16];
     bzero(&my_addr, sizeof(my_addr));
 	socklen_t len = sizeof(my_addr);
 	getsockname(client_socket, (struct sockaddr *) &my_addr, &len);
 	inet_ntop(AF_INET, &my_addr.sin_addr, myIP, sizeof(myIP));
-	myPort = ntohs(my_addr.sin_port);
+	dynamicPort = ntohs(my_addr.sin_port);
 
     //	While loop:
     char buf[4096];
@@ -109,21 +109,21 @@ int main()
         int bytesReceived = recv(client_socket, buf, 4096, 0);
         string receivedInfo(buf);
         if (bytesReceived == -1) {
-            cout << "[-] <" << myPort << "> There was an error getting response from server" << endl << endl;
+            cout << "There was an error getting response from server" << endl;
         }
         else {
             if (receivedInfo.compare("FAIL_NO_USER") == 0) {
                 cout << username << " received the result of authentication using TCP over "
-                     << TCP_PORT << ". Authentication failed: Username Does not exist" << endl
+                     << dynamicPort << ". Authentication failed: Username Does not exist" << endl
                      << "Attempts remaining:" << count << endl;
             } else if (receivedInfo.compare("FAIL_PASS_NO_MATCH") == 0) {
                 cout << username << " received the result of authentication using TCP over "
-                     << TCP_PORT << ". Authentication failed: Password Does not exist" << endl
+                     << dynamicPort << ". Authentication failed: Password Does not exist" << endl
                      << "Attempts remaining:" << count << endl;
             } else if (receivedInfo.compare("PASS") == 0) {
 
                 cout << username << " received the result of authentication using TCP over "
-                     << TCP_PORT << ". Authentication is successful" << endl;
+                     << dynamicPort << ". Authentication is successful" << endl;
 
                 int enterCount = 0;
                 while (true) {
@@ -147,17 +147,19 @@ int main()
 
                     //	Wait for response
                     memset(buf, 0, 4096);
-                    
+                                        
                     int bytesReceived = recv(client_socket, buf, 4096, 0);
+                    cout << "The client received the response from the Main server using TCP " \
+                            "over port " << dynamicPort << "." << endl;
                     string courseInfo(buf);
                     if (bytesReceived == -1) {
-                        cout << "[-] <" << myPort << "> There was an error getting response from server" << endl << endl;
+                        cout << "There was an error getting response from server" << endl;
                     }
                     if (courseInfo.compare("NOT_FOUND") == 0) {
                         cout << "Didn't find the course: " << courseCode << "." << endl;
                     } else {
                         cout << "The " << category << " of " << courseCode << " is " <<
-                                courseInfo << endl;
+                                courseInfo << "." << endl;
                         
                     }
                     enterCount++;

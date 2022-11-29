@@ -95,12 +95,12 @@ bool setupTCP(int &server_socket, sockaddr_in &serverAddr, int port, string IP)
     serverAddr.sin_addr.s_addr = inet_addr(IP.c_str());
 	
     if(bind(server_socket, (sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
-		cout << "[-]Error in binding.\n";
+		cout << "Error in binding.\n";
 		return false;
 	}
 
 	if(listen(server_socket, 10) != 0) {
-		cout << "[-]Error in listening.\n";
+		cout << "Error in listening.\n";
         return false;
 	}
 
@@ -158,11 +158,11 @@ int main()
 		if (newSocket < 0) {
 			return -1;
 		}
-		cout << "Connection accepted from " << inet_ntoa(newAddr.sin_addr) << ": "
-			 << ntohs(newAddr.sin_port) << endl;
 
 		if ((childpid = fork()) == 0) {
 			close(server_socket);
+
+			string username;
 
 			while (true) {
 
@@ -173,28 +173,28 @@ int main()
 					cout << "recv wrong" << endl;
 					continue;
 				}
-				
-				string username;
 
 				if (buffer[0] != 'E' && buffer[0] != 'C') {
 
 					vector<string> message_list = convert_string_to_vector(string(buffer));
 					username = message_list[0];
 					string password = message_list[1];
-					username = encrypt(username);
+					string en_username = encrypt(username);
 					password = encrypt(password);
-					string toCren = username + "," + password;
+					string toCren = en_username + "," + password;
 					memset(&buffer, '\0', sizeof(buffer));
+
+					cout << "The main server received the authentication for " << username <<
+							" using TCP over port " << TCP_PORT << "." << endl;
 
 					cout << "The main server sent an authentication request to serverC." << endl;
 					string response = UDP_send_receive(sockfd_UDP, serverAddr_UDP_C, toCren);
 					cout << "The main server received the result of the authentication request " \
-							"from ServerC using UDP over port " << SERVER_C << endl;
+							"from ServerC using UDP over port " << UDP_MAIN_SERVER << endl;
 
 					send(newSocket, response.c_str(), response.size() + 1, 0);
 
-					cout << "The main server sent the authentication result to the client." <<
-							response << endl;
+					cout << "The main server sent the authentication result to the client." << endl;
 
 				} else if (buffer[0] == 'E') {
 
@@ -202,8 +202,6 @@ int main()
 					string courseCode = message_list[0];
 					string category = message_list[1];
 					string toEE = courseCode + "," + category;
-					// cout << "CourseCode: " << courseCode << endl;
-					// cout << "Category: " << category << endl;
 
 					cout << "The main server received from " << username << " to query course " <<
 							courseCode << " about " << category << " using TCP over port " <<
@@ -212,7 +210,7 @@ int main()
 					cout << "The main server sent a request to serverEE." << endl;
 
 					cout << "The main server received the response from serverEE using UDP " <<
-							"over port " << SERVER_EE << "." << endl;
+							"over port " << UDP_MAIN_SERVER << "." << endl;
 					send(newSocket, ee_response.c_str(), ee_response.size() + 1, 0);
 					cout << "The main server sent the query information to the client." << endl;
 
@@ -222,8 +220,6 @@ int main()
 					string courseCode = message_list[0];
 					string category = message_list[1];
 					string toCS = courseCode + "," + category;
-					// cout << "CourseCode: " << courseCode << endl;
-					// cout << "Category: " << category << endl;
 
 					cout << "The main server received from " << username << " to query course " <<
 							courseCode << " about " << category << " using TCP over port " <<
@@ -232,7 +228,7 @@ int main()
 					cout << "The main server sent a request to serverCS." << endl;
 					
 					cout << "The main server received the response from serverCS using UDP " <<
-							"over port " << SERVER_CS << "." << endl;
+							"over port " << UDP_MAIN_SERVER << "." << endl;
 					send(newSocket, cs_response.c_str(), cs_response.size() + 1, 0);
 					cout << "The main server sent the query information to the client." << endl;
 
